@@ -4,7 +4,7 @@
 
 This is a portuguese prolog prototype of a medical diagnostic system using SWI-Prolog, having the following functions:
 
-- <b> Patients control module (File manipulation) </b>: Inclusion, consultation, alteration and exclusion of patients data in a pacientes.txt file database.
+- <b> Patients control module</b>: Inclusion, consultation, alteration and exclusion of patients data in a pacientes.txt file database.
 - <b> Diseases local database</b>:  The source code has ten types of diases wich it's going to be stored at local memory.
 - <b> Diagnostic module </b>:
   - Console interation asking wich symptoms the patient have (EX: fever, headache, nausea).
