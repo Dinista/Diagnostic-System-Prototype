@@ -18,6 +18,17 @@ This is a portuguese prolog prototype of a medical diagnostic system using SWI-P
 
 ## How to use
 
+The Pacientes.txt must be in local C disk
 
+  C:\Pacientes.txt
+
+Start the program in SWI prolog typing:
+
+  init.
 
 ## Unit tests
+
+10 unit tests were implemented.
+To execute type:
+
+  run_tests.

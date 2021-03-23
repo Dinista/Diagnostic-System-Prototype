@@ -3,7 +3,7 @@
 
 :- use_module(library(plunit)).
 
-:- dynamic paciente/2.
+:- dynamic paciente/4.
 
 :- discontiguous doenca/3.
 
@@ -14,13 +14,13 @@ escrever_arquivo :-
 
 adicionar :-
     cls,
-    %get_char(_),
     writeln("Adicionando um paciente."),nl,
     writeln("Entre o nome do paciente: "),nl,
     read_line_to_string(user_input,Nome),nl,
     writeln("Entre o telefone dele:"),nl,
     read_line_to_string(user_input,Telefone),nl,
-    assertz(paciente(Nome, Telefone)),
+    ler_sintomas(Lista_Sintomas),
+    assertz(paciente(Nome, Telefone, Lista_Sintomas, "Inexistente")),
     write("Paciente adicionado."),
     escrever_arquivo,
     get_char(_),
@@ -29,76 +29,64 @@ adicionar :-
 
 deletar :-
    cls,
-   %get_char(_),
    writeln("Deletando um paciente."),nl,
    writeln("Entre o nome: "),
    read_line_to_string(user_input,Nome),nl,
-   retract(paciente(Nome, _)),
+   call(paciente(Nome, _, _, _)), !,
+   retract(paciente(Nome, _, _, _)),
    format("Deseja remover os dados do ~w? (y/n)", Nome), nl,
    readln(Op),
    (Op == [y] -> write("Paciente retirado."),
     get_char(_),
     escrever_arquivo,
-    init; write("Cancelado."), get_char(_), init).
+    init;
+   write("Cancelado."),
+   get_char(_),
+   init);
+   write("Erro: Paciente não encontrado"),
+   get_char(_),
+   init.
 
 
 consultar :-
    cls,
-   %get_char(_),
    writeln("Procurando informações de um paciente"),nl,
    writeln("Entre com o nome:"),nl,
    read_line_to_string(user_input,Nome),nl,
-   paciente(Nome, Y),
+   call(paciente(Nome, T, S, D)), !,
    format("Nome: ~w", Nome),nl,
-   format("Telefone: ~w", Y),
+   format("Telefone: ~w", T),nl,
+   write("Sintomas:"),nl,
+   show_sint(S),nl,
+   format("Diagnóstico: ~w", D),
+   get_char(_),
+   init;
+   write("Paciente não encontrado"),
    get_char(_),
    init.
 
 alterar :-
    cls,
-   %get_char(_),
    writeln("Alterando os dados de um paciente."),nl,
    writeln("Entre o nome:"),
    read_line_to_string(user_input,Nome),nl,
-   paciente(Nome, Y),
+   call(paciente(Nome, T, S, D)) ->
    format("Deseja alterar os dados do ~w? (y/n)", Nome), nl,
    readln(Op),
    (Op == [y] ->
-    retract(paciente(Nome,Y)),
-    writeln("Entre com o novo nome do paciente: "),nl,
+    retract(paciente(Nome,T, S, D)),
+    format("Entre com o novo nome do paciente (Nome antigo : ~w): ", Nome),nl,
     read_line_to_string(user_input,NovoNome),nl,
-    writeln("Entre com o novo telefone:"),nl,
+    format("Entre com o novo telefone (Telefone antigo: ~w):", T),nl,
     read_line_to_string(user_input,NovoTelefone),nl,
-    assertz(paciente(NovoNome, NovoTelefone)),
+    ler_sintomas(Lista_Sintomas),
+    assertz(paciente(NovoNome, NovoTelefone, Lista_Sintomas, "Inexistente")),
     escrever_arquivo,
     write("Paciente alterado."),
     get_char(_),
     init;
-    write("Cancelado"), init).
-
-
-
-
-doenca("Cefaleia", ["dor de cabeça","sensibilidade a luz", "sensibilidade ao som", "sensibilidade ao cheiro","irritabilidade", "náuseas", "vômito", "latejamento" , "dor"], 0.29).
-
-doenca("Acidente vascular encefálico(AVC)", ["fraqueza de um lado do corpo", "sensibilidade", "corpo", "dificuldade para falar", " dificuldade para comer", "perda da visão", "tontura", "desmaios", "alterações motoras", "distúrbio de linguagem"], 0.26).
-
-doenca("Dorsalgia", ["pontadas", "queimação na coluna", "dificuldade para respirar"], 0.10).
-
-doenca("Dor precordial", ["dor no peito", "dor durante a respiração", "falta de ar", "ansiedade"], 0.38).
-
-doenca("Insuficiência cardíaca",["tosse", "inchaço", "ganho de peso", "pulso irregular", "palpitações", "insônia", "fadiga", "fraqueza", "desmaio", "indigestão", "náuseas", "vômito"], 0.25).
-
-doenca("Hipertensão arterial", [ "dor de cabeça", "falta de ar", "visão borrada","zumbido no ouvido", "tontura", "dores no peito"], 0.12).
-
-doenca("Arritmia Cardíaca", ["palpitações no coração", "queda de pressão", "fadiga", "falta de ar","desmaios", "enjoos", "vertigem"], 0.08).
-
-doenca("Lombalgia", ["dor na coluna", "dor na coxa", "fraqueza", "dificuldade em se movimentar"], 0.04).
-
-doenca("Sinusite", ["obstrução nasal", "secreção nasal", "faríngea amarelada","faríngea esverdeada","tosse","dor de cabeça","mal-estar", "cansaço","irritação na garganta","redução do olfato", "febre alta"], 0.02).
-
-doenca("Dispepsia",["dispneia","sudorese","taquicardia","anorexia","náuseas","vômitos","perda ponderal","sangue nas fezes","disfagia","odinofagia"], 0.015).
-
+    write("Cancelado"), init);
+    write("Erro: Paciente não encontrado."), get_char(_), init.
 
 
 diagnostico(Sintomas, L) :-
@@ -126,9 +114,8 @@ sintomas_out_info(Paciente_Sintoma, Nome_Doenca, Info):-
    subtract(Sintomas, Sintomas_comum, Info).
 
 ler_sintomas(Lista_Sintomas):-
-   cls,
-   %get_char(_),
-   writeln("Escreva os sintomas, separando-os com virgula:"),
+   nl,
+   writeln("Escreva os sintomas, separando-os com virgula e sem ponto final:"),
    read_line_to_string(user_input,Input),
    string_lower(Input, Saida),
    split_string(Saida, ",", " ", Lista_Sintomas),nl.
@@ -174,7 +161,7 @@ first_elem([A|_],A).
 show_sint([]).
 
 show_sint([M|N]):-
-   format("~w.",M),nl,
+   format("- ~w.",M),nl,
    show_sint(N).
 
 %main
@@ -183,13 +170,14 @@ init :-
    ['c:\\Pacientes.txt'],
    cls,
    %writeln("-----------Menu----------"),nl,
-   writeln("Escolha uma das opções:"),nl,
+   writeln("BEM-VINDO AO SISTEMA DE DIAGNÓSTICO DE SINTOMAS!"),nl,
+   writeln("Escolha uma das opções (sem ponto final):"),nl,
    writeln("1. Controle de Paciente."),nl,
    writeln("2. Diagnóstico."),nl,
    %writeln("-------------------------"),nl,
    readln(Op),
    cls,
-   (   Op == [1] -> writeln("Escolha uma das opções:"),nl,
+   Op == [1] -> writeln("Escolha uma das opções (sem ponto final):"),nl,
        writeln("1. Adicionar paciente."),nl,
        writeln("2. Pesquisar paciente."),nl,
        writeln("3. Alterar informações do paciente."),nl,
@@ -199,12 +187,18 @@ init :-
                    [2] : consultar,
                    [3] : alterar,
                    [4] : deletar]);
-   ler_sintomas(Paciente_Sintomas),
+   %Op == [2],
+   writeln("Qual o nome do paciente que deseja diagnosticar?"),nl,
+   read_line_to_string(user_input,Nome),nl,
+   call(paciente(Nome, Tele, Paciente_Sintomas, D)) ->
    diagnostico(Paciente_Sintomas, A),
    first_elem(A, B),
    format(atom(T), "~w", B),
    atom_string(T,X),
    split_string(X, ":", "", Saida),
+   first_elem(Saida, PBS),
+   (   PBS \= "0" ->
+   retract(paciente(Nome, Tele, Paciente_Sintomas, D)),
    reverse_list(Saida, S),
    first_elem(S, Doenca),
    sintomas_comum_info(Paciente_Sintomas, Doenca, Info_Comum),nl,
@@ -212,18 +206,48 @@ init :-
    format("A possível doença segundo seus sintomas é a ~w.", Doenca), nl,nl,   doenca(Doenca,_,Y),
    format("A ~w ", Doenca), format(",sengundo pesquisa, tem probabilidade de ~w% de ocorrência.", Y),nl, nl, nl,
    writeln("O RESULTADO DO PROTÓTIPO É APENAS INFORMATIVO!"),
-    writeln("O PACIENTE DEVE CONSULTAR UM MÉDICO PARA OBTER UM DIAGNÓSTICO CORRETO E PRECISO."),nl,
+   writeln("O PACIENTE DEVE CONSULTAR UM MÉDICO PARA OBTER UM DIAGNÓSTICO CORRETO E PRECISO."),nl,
    writeln("-------------------------------------------------------------"),nl,
+   assertz(paciente(Nome, Tele, Paciente_Sintomas, Doenca)),
+   escrever_arquivo,
    format("Deseja ter mais informações sobre a ~w? (y/n)", Doenca), nl,
    readln(Opc),
    (Opc == [y] ->
-    nl, writeln("Sintomas em comum:"),nl,
-    show_sint(Info_Comum),nl,
-    writeln("Outros sintomas da doença:"),nl,
-    sintomas_out_info(Paciente_Sintomas, Doenca, Info_dif),
-    show_sint(Info_dif),nl,
-    readln(_), init;init)).
+   nl, writeln("Sintomas em comum:"),nl,
+   show_sint(Info_Comum),nl,
+   writeln("Outros sintomas da doença:"),nl,
+   sintomas_out_info(Paciente_Sintomas, Doenca, Info_dif),
+   show_sint(Info_dif),nl,
+   readln(_), init; init);
+   nl,
+   writeln("Nenhuma doença foi encontrada com seus sintomas."),nl,
+   write("PROCURE UM MÉDICO PARA OBTER UM DIAGNÓSTICO CORRETO E PRECISO."),
+   get_char(_),
+   init); write("Erro: Paciente não encontrado."), get_char(_), init.
 
+% Doenças - base de dados
+
+doenca("Cefaleia", ["dor de cabeça","sensibilidade a luz", "sensibilidade ao som", "sensibilidade ao cheiro","irritabilidade", "náuseas", "vômito", "latejamento" , "dor"], 0.29).
+
+doenca("Acidente vascular encefálico(AVC)", ["fraqueza de um lado do corpo", "sensibilidade", "corpo", "dificuldade para falar", " dificuldade para comer", "perda da visão", "tontura", "desmaios", "alterações motoras", "distúrbio de linguagem"], 0.26).
+
+doenca("Dorsalgia", ["pontadas", "queimação na coluna", "dificuldade para respirar"], 0.10).
+
+doenca("Dor precordial", ["dor no peito", "dor durante a respiração", "falta de ar", "ansiedade"], 0.38).
+
+doenca("Insuficiência cardíaca",["tosse", "inchaço", "ganho de peso", "pulso irregular", "palpitações", "insônia", "fadiga", "fraqueza", "desmaio", "indigestão", "nnáuseas", "vômito"], 0.25).
+
+doenca("Hipertensão arterial", [ "dor de cabeça", "falta de ar", "visão borrada","zumbido no ouvido", "tontura", "dores no peito"], 0.12).
+
+doenca("Arritmia Cardíaca", ["palpitações no coração", "queda de pressão", "fadiga", "falta de ar","desmaios", "enjoos", "vertigem"], 0.08).
+
+doenca("Lombalgia", ["dor na coluna", "dor na coxa", "fraqueza", "dificuldade em se movimentar"], 0.04).
+
+doenca("Sinusite", ["obstrução nasal", "secreção nasal", "faríngea amarelada","faríngea esverdeada","tosse","dor de cabeça","mal-estar", "cansaço","irritação na garganta","redução do olfato", "febre alta"], 0.02).
+
+doenca("Dispepsia",["dispneia","sudorese","taquicardia","anorexia","náuseas","vômitos","perda ponderal","sangue nas fezes","disfagia","odinofagia"], 0.015).
+
+%Testes Unitários
 
 :- begin_tests(testes).
 
